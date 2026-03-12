@@ -1,0 +1,5 @@
+/pycache
+/venv
+/.env
+/.starrt_server.bat
+/.starrt_server.sh

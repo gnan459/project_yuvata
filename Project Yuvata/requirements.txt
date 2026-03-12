@@ -1,0 +1,17 @@
+
+
+streamlit
+instaloader
+requests
+easyocr
+opencv-python
+google-generativeai
+python-dotenv
+fastapi
+uvicorn
+# OCR - Lightweight (requires Tesseract installed separately)
+pytesseract>=0.3.13
+Pillow>=10.0.0
+
+uvicorn[standard]
+fastapi
