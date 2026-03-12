@@ -9,6 +9,8 @@ export interface Question {
   correctAnswer: "real" | "fake";
 }
 
+
+
 export const sampleQuestions: Question[] = [
   {
     id: 1,
@@ -33,9 +35,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "fake",
   },
-
-  /* INSTAGRAM QUESTIONS (UNCHANGED) */
-
   {
     id: 3,
     content: {
@@ -47,7 +46,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "fake",
   },
-
   {
     id: 4,
     content: {
@@ -59,7 +57,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "real",
   },
-
   {
     id: 5,
     content: {
@@ -72,7 +69,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "real",
   },
-
   {
     id: 6,
     content: {
@@ -84,7 +80,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "fake",
   },
-
   {
     id: 7,
     content: {
@@ -96,7 +91,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "fake",
   },
-
   {
     id: 8,
     content: {
@@ -109,7 +103,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "fake",
   },
-
   {
     id: 9,
     content: {
@@ -121,7 +114,6 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "fake",
   },
-
   {
     id: 10,
     content: {
@@ -133,4 +125,22 @@ export const sampleQuestions: Question[] = [
     },
     correctAnswer: "real",
   },
+];
+
+// Sheet 1: 3 messages/emails, 2 Instagram posts
+export const sheet1: Question[] = [
+  sampleQuestions[0], // id: 1, message
+  sampleQuestions[1], // id: 2, email
+  sampleQuestions[3], // id: 4, message
+  sampleQuestions[2], // id: 3, instagram
+  sampleQuestions[5], // id: 6, instagram
+];
+
+// Sheet 2: 3 messages/emails, 2 Instagram posts
+export const sheet2: Question[] = [
+  sampleQuestions[4], // id: 5, email
+  sampleQuestions[6], // id: 7, message
+  sampleQuestions[7], // id: 8, email
+  sampleQuestions[8], // id: 9, instagram
+  sampleQuestions[9], // id: 10, message
 ];

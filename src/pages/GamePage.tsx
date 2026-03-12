@@ -6,7 +6,7 @@ import ContentCard from "@/components/game/ContentCard";
 import AnswerButtons from "@/components/game/AnswerButtons";
 import ProgressBar from "@/components/game/ProgressBar";
 import EvaluatorCard from "@/components/game/EvaluatorCard";
-import { sampleQuestions } from "@/data/sampleQuestions";
+import { sheet1, sheet2 } from "@/data/sampleQuestions";
 
 const GamePage = () => {
   const navigate = useNavigate();
@@ -17,8 +17,18 @@ const GamePage = () => {
   const [toolUsageCount, setToolUsageCount] = useState(0);
   const [toolUsedPerQuestion, setToolUsedPerQuestion] = useState(false);
 
-  const question = sampleQuestions[currentIndex];
-  const total = sampleQuestions.length;
+  // Alternate sheets using localStorage
+  const [sheet, setSheet] = useState(sheet1);
+  // On mount, determine which sheet to use
+  useState(() => {
+    const attempt = Number(localStorage.getItem("gameAttempt") || "0");
+    const nextAttempt = attempt + 1;
+    localStorage.setItem("gameAttempt", String(nextAttempt));
+    setSheet(nextAttempt % 2 === 1 ? sheet1 : sheet2);
+  });
+
+  const question = sheet[currentIndex];
+  const total = sheet.length;
 
   const handleAnswer = (answer: "real" | "fake") => {
     setSelected(answer);
@@ -31,7 +41,7 @@ const GamePage = () => {
 
       if (currentIndex + 1 >= total) {
         const correct = newAnswers.filter(
-          (a, i) => a === sampleQuestions[i].correctAnswer
+          (a, i) => a === sheet[i].correctAnswer
         ).length;
         navigate("/results", {
           state: {
