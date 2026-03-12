@@ -1,20 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Loader2, AlertCircle, CheckCircle } from "lucide-react";
-
-interface PostData {
-  caption: string;
-  username?: string;
-}
-
-interface AnalysisResult {
-  username?: string;
-  caption: string;
-  overall_risk_level: string;
-  source_credibility: string;
-  prediction: "real" | "fake";
-  explanation: string;
-}
+import { Search, Loader2 } from "lucide-react";
 
 interface EvaluatorCardProps {
   title: string;
@@ -22,57 +8,19 @@ interface EvaluatorCardProps {
   buttonLabel: string;
   placeholderText: string;
   onToolUsed: () => void;
-  postData?: PostData;
-  apiEndpoint?: string;
 }
 
-const EvaluatorCard = ({ title, description, buttonLabel, placeholderText, onToolUsed, postData, apiEndpoint = "http://localhost:8000" }: EvaluatorCardProps) => {
+const EvaluatorCard = ({ title, description, buttonLabel, placeholderText, onToolUsed }: EvaluatorCardProps) => {
   const [loading, setLoading] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     setLoading(true);
-    setError(null);
     onToolUsed();
-
-    try {
-      if (postData && apiEndpoint) {
-        // Make API call to FastAPI backend
-        const response = await fetch(`${apiEndpoint}/api/evaluate-instagram-post`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            caption: postData.caption,
-            username: postData.username,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        setAnalysisResult(result);
-      } else {
-        // Fallback to mock data if no API endpoint
-        setTimeout(() => {
-          setLoading(false);
-          setAnalyzed(true);
-        }, 1500);
-        return;
-      }
-
+    setTimeout(() => {
       setLoading(false);
       setAnalyzed(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to analyze post");
-      setLoading(false);
-      setAnalyzed(true);
-    }
+    }, 1500);
   };
 
   return (
@@ -107,73 +55,25 @@ const EvaluatorCard = ({ title, description, buttonLabel, placeholderText, onToo
           API Response Area
         </p>
         <AnimatePresence mode="wait">
-          {error ? (
+          {analyzed ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="space-y-2"
             >
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-xs text-red-500">{error}</span>
-              </div>
-              <p className="text-xs text-muted-foreground italic mt-2">
-                Make sure the FastAPI server is running on {apiEndpoint}
-              </p>
-            </motion.div>
-          ) : analyzed && analysisResult ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-3"
-            >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Overall Risk Level</span>
-                <span className={`text-xs font-mono font-semibold ${
-                  analysisResult.overall_risk_level === "Low" ? "text-green-500" :
-                  analysisResult.overall_risk_level === "Medium" ? "text-yellow-500" :
-                  analysisResult.overall_risk_level === "High" ? "text-orange-500" :
-                  "text-red-500"
-                }`}>
-                  {analysisResult.overall_risk_level}
-                </span>
+                <span className="text-xs text-muted-foreground">Credibility Score</span>
+                <span className="text-xs font-mono text-muted-foreground/60">—</span>
               </div>
-              
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Prediction</span>
-                <div className="flex items-center gap-1">
-                  {analysisResult.prediction === "fake" ? (
-                    <AlertCircle className="w-3 h-3 text-red-500" />
-                  ) : (
-                    <CheckCircle className="w-3 h-3 text-green-500" />
-                  )}
-                  <span className={`text-xs font-mono font-semibold ${
-                    analysisResult.prediction === "fake" ? "text-red-500" : "text-green-500"
-                  }`}>
-                    {analysisResult.prediction.toUpperCase()}
-                  </span>
-                </div>
+                <span className="text-xs font-mono text-muted-foreground/60">—</span>
               </div>
-
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Source Credibility</span>
-                <span className={`text-xs font-mono font-semibold ${
-                  analysisResult.source_credibility === "High" ? "text-green-500" :
-                  analysisResult.source_credibility === "Medium" ? "text-yellow-500" :
-                  "text-red-500"
-                }`}>
-                  {analysisResult.source_credibility}
-                </span>
+                <span className="text-xs text-muted-foreground">Explanation</span>
+                <span className="text-xs font-mono text-muted-foreground/60">—</span>
               </div>
-
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
-                  Analysis
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {analysisResult.explanation}
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground italic mt-2">{placeholderText}</p>
             </motion.div>
           ) : (
             <motion.p
