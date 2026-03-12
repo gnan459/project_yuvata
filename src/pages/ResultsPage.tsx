@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import confetti from "canvas-confetti";
 import { Shield, Target, CheckCircle, Wrench, ArrowLeft, Lightbulb } from "lucide-react";
 import ScoreCircle from "@/components/game/ScoreCircle";
 
@@ -21,6 +23,41 @@ const ResultsPage = () => {
   };
 
   const percent = Math.round((state.score / state.total) * 100);
+
+  useEffect(() => {
+    // Celebration confetti effect
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const colors = percent >= 80
+      ? ["#22c55e", "#16a34a", "#10b981"]
+      : percent >= 50
+      ? ["#f97316", "#ea580c", "#fb923c"]
+      : ["#ef4444", "#dc2626", "#f87171"];
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+  }, [percent]);
 
   const tips = percent >= 80
     ? [
