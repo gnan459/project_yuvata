@@ -178,7 +178,8 @@ class PostAnalyzer:
         has_image_text: bool = False
     ) -> Dict:
         """
-        Use Gemini to analyze the post content and determine all 4 metrics.
+        Hybrid analysis: Use formulas for metrics, Gemini only for explanation.
+        This drastically reduces API calls and token usage.
         
         Args:
             combined_content: Combined caption + image text
@@ -188,129 +189,176 @@ class PostAnalyzer:
         Returns:
             Dictionary with all 4 metrics
         """
+        # Step 1: Calculate metrics using formulas (no API calls)
+        metrics = self._calculate_metrics_with_formulas(combined_content, username)
+        
+        # Step 2: Only call Gemini for explanation (minimal tokens)
         try:
-            username_context = f"Instagram account username: {username}\n" if username else ""
-            image_note = "\nNote: This analysis includes text extracted from post images via OCR." if has_image_text else "\nNote: This analysis is based on caption text only (no images)."
+            print("DEBUG: Calling Gemini API for explanation only...")
             
-            prompt = f"""You are an expert digital literacy analyst and misinformation detector for social media posts.
-
-INSTAGRAM POST CONTENT:
-{combined_content}
-
-{username_context}
-TASK: Analyze this Instagram post and determine the following 4 metrics and provide your response as plain text:
-
-1. OVERALL RISK LEVEL: Based on the content, how risky is this post for spreading misinformation?
-   Choose one: Low | Medium | High | Critical
-
-2. PREDICTION: Is this post likely Real or Fake/Misleading?
-   Choose one: real | fake
-
-3. SOURCE CREDIBILITY: Based on the account username (if provided), how credible is the source?
-   Choose one: High | Medium | Low
-
-4. EXPLANATION: Provide a 3-4 sentence detailed explanation that:
-   - Justifies why you rated the source credibility as you did
-   - Explains why you assigned the overall risk level
-   - References specific claims or content concerns from the post
-   - Provides actionable advice for users{image_note}
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS (with line breaks):
-OVERALL_RISK_LEVEL: [Low|Medium|High|Critical]
-PREDICTION: [real|fake]
-SOURCE_CREDIBILITY: [High|Medium|Low]
-EXPLANATION: [Your 3-4 sentence explanation here]"""
+            explanation = self._get_gemini_explanation(
+                combined_content=combined_content,
+                metrics=metrics,
+                username=username,
+                has_image_text=has_image_text
+            )
             
-            print("DEBUG: Calling Gemini API...")
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            metrics["explanation"] = explanation
+            print(f"DEBUG: Parsed result: {metrics}")
             
-            print(f"DEBUG: Gemini raw response:\n{response_text}\n")
-            
-            # Parse the response line by line
-            result = self._parse_gemini_response(response_text)
-            
-            print(f"DEBUG: Parsed result: {result}")
-            
-            return result
+            return metrics
         
         except Exception as e:
-            print(f"ERROR: Gemini API error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            print("DEBUG: Falling back to fallback analysis")
-            return self._generate_fallback_analysis(combined_content, username)
-            
+            print(f"ERROR: Gemini API error for explanation: {str(e)}")
+            # Use fallback explanation if Gemini fails
+            metrics["explanation"] = self._generate_fallback_explanation(combined_content, metrics, username)
+            print("DEBUG: Using fallback explanation")
+            return metrics
     
-    def _parse_gemini_response(self, response_text: str) -> Dict:
+    def _calculate_metrics_with_formulas(self, content: str, username: Optional[str]) -> Dict:
         """
-        Parse Gemini response in format:
-        OVERALL_RISK_LEVEL: [value]
-        PREDICTION: [value]
-        SOURCE_CREDIBILITY: [value]
-        EXPLANATION: [value]
+        Calculate all metrics using heuristic formulas (no API calls).
         
         Args:
-            response_text: Raw response from Gemini
+            content: Combined caption + image text
+            username: Instagram username
             
         Returns:
-            Parsed metrics dictionary
+            Dictionary with calculated metrics
         """
-        try:
-            lines = response_text.strip().split('\n')
-            
-            result = {
-                "overall_risk_level": "Medium",
-                "prediction": "real",
-                "source_credibility": "Medium",
-                "explanation": ""
-            }
-            
-            explanation_lines = []
-            parsing_explanation = False
-            
-            for line in lines:
-                line = line.strip()
-                
-                if line.startswith("OVERALL_RISK_LEVEL:"):
-                    value = line.replace("OVERALL_RISK_LEVEL:", "").strip()
-                    if value in ["Low", "Medium", "High", "Critical"]:
-                        result["overall_risk_level"] = value
-                
-                elif line.startswith("PREDICTION:"):
-                    value = line.replace("PREDICTION:", "").strip().lower()
-                    if value in ["real", "fake"]:
-                        result["prediction"] = value
-                
-                elif line.startswith("SOURCE_CREDIBILITY:"):
-                    value = line.replace("SOURCE_CREDIBILITY:", "").strip()
-                    if value in ["High", "Medium", "Low"]:
-                        result["source_credibility"] = value
-                
-                elif line.startswith("EXPLANATION:"):
-                    parsing_explanation = True
-                    explanation_text = line.replace("EXPLANATION:", "").strip()
-                    if explanation_text:
-                        explanation_lines.append(explanation_text)
-                
-                elif parsing_explanation and line:
-                    explanation_lines.append(line)
-            
-            result["explanation"] = " ".join(explanation_lines) if explanation_lines else "Analysis completed."
-            
-            return result
+        content_lower = content.lower()
         
-        except Exception as e:
-            print(f"Warning: Could not parse Gemini response: {str(e)}")
-            print(f"Raw response: {response_text}")
-            return {
-                "overall_risk_level": "Medium",
-                "prediction": "real",
-                "source_credibility": "Medium",
-                "explanation": "Unable to generate detailed analysis. Please try again."
-            }
+        # === OVERALL RISK LEVEL ===
+        risk_keywords = {
+            "critical": [
+                "urgent", "dying", "destroyed", "shocking truth", "they dont want", "banned", "classified",
+                "cure instantly", "cures instantly", "miracle cure", "miracle", "secret revealed", "governments hiding",
+                "hiding the truth", "before they remove", "share before", "they don't want"
+            ],
+            "high": [
+                "click here", "limited offer", "buy now", "limited time", "fake", "hoax", "scam", "warning",
+                "free iphone", "free giveaway", "first 1000", "hurry", "only available", "cure naturally",
+                "naturally cure", "pharmaceutical companies", "big pharma", "aliens landed", "conspiracy", "confirmed aliens",
+                "secret fruit", "doctors hate", "naturally in", "doctor reveal"
+            ],
+            "medium": [
+                "check this out", "you wont believe", "amazing", "incredible", "proof", "evidence",
+                "free", "giveaway", "win", "prize", "exclusive", "confirmed", "secretly", "scientists", "reveal"
+            ]
+        }
         
+        risk_score = 0
+        for level, keywords in risk_keywords.items():
+            for kw in keywords:
+                if kw in content_lower:
+                    if level == "critical":
+                        risk_score += 3
+                    elif level == "high":
+                        risk_score += 2
+                    elif level == "medium":
+                        risk_score += 1
         
+        if risk_score >= 6:
+            overall_risk_level = "Critical"
+        elif risk_score >= 4:
+            overall_risk_level = "High"
+        elif risk_score >= 2:
+            overall_risk_level = "Medium"
+        else:
+            overall_risk_level = "Low"
+        
+        # === PREDICTION (Real/Fake) ===
+        fake_indicators = [
+            "fake", "photoshopped", "deepfake", "manipulated", "hoax", "myth", "debunked", "false",
+            "giveaway", "free iphone", "apple giveaway", "conspiracy", "aliens", "hiding", "scam",
+            "cure instantly", "miracle cure", "secret revealed", "governments hiding", "before they remove"
+        ]
+        real_indicators = ["verified", "official", "authentic", "real", "genuine", "confirmed", "nasa", "science"]
+        
+        fake_count = sum(1 for ind in fake_indicators if ind in content_lower)
+        real_count = sum(1 for ind in real_indicators if ind in content_lower)
+        
+        # More suspicious keywords = likely fake
+        if fake_count > real_count or risk_score >= 4:
+            prediction = "fake"
+        else:
+            prediction = "real"
+        
+        # === SOURCE CREDIBILITY ===
+        credible_terms = ["official", "verified", "expert", "news", "journalist", "doctor", "scientist", "institution", "nasa", "government"]
+        suspicious_terms = ["anonymous", "leaked", "insider", "unknown", "classified", "conspiracy", "truth", "giveaway", "free"]
+        
+        credible_score = sum(1 for term in credible_terms if term in content_lower)
+        suspicious_score = sum(1 for term in suspicious_terms if term in content_lower)
+        
+        if username:
+            username_lower = username.lower()
+            if any(term in username_lower for term in ["official", "verified", "news", "nasa"]):
+                credible_score += 2
+            if any(term in username_lower for term in ["fake", "troll", "spam", "conspiracy", "truth_channel", "giveaway", "free"]):
+                suspicious_score += 3  # Higher penalty for suspicious usernames
+        
+        if credible_score >= 2:
+            source_credibility = "High"
+        elif suspicious_score >= 2:
+            source_credibility = "Low"
+        else:
+            source_credibility = "Medium"
+        
+        return {
+            "overall_risk_level": overall_risk_level,
+            "prediction": prediction,
+            "source_credibility": source_credibility,
+            "explanation": ""  # Will be filled by Gemini or fallback
+        }
+    
+    def _get_gemini_explanation(
+        self,
+        combined_content: str,
+        metrics: Dict,
+        username: Optional[str],
+        has_image_text: bool
+    ) -> str:
+        """
+        Get explanation from Gemini with minimal tokens.
+        
+        Args:
+            combined_content: Combined caption + image text
+            metrics: Already calculated metrics
+            username: Instagram username
+            has_image_text: Whether image text was included
+            
+        Returns:
+            Explanation from Gemini
+        """
+        username_context = f"Instagram username: {username}\n" if username else ""
+        image_note = " (includes OCR text from images)" if has_image_text else " (caption only)"
+        
+        # Compact prompt to minimize tokens
+        prompt = f"""Briefly justify (2-3 sentences) why this Instagram post is {metrics['overall_risk_level'].lower()} risk and {metrics['source_credibility'].lower()} credibility{image_note}:
+
+{combined_content[:500]}"""
+        
+        print(f"DEBUG: Gemini prompt:\n{prompt}\n")
+        
+        response = self.model.generate_content(prompt)
+        explanation = response.text.strip()
+        
+        print(f"DEBUG: Gemini response:\n{explanation}\n")
+        
+        return explanation if explanation else "Analysis completed."
+    
+    def _generate_fallback_explanation(self, content: str, metrics: Dict, username: Optional[str]) -> str:
+        """
+        Generate fallback explanation when Gemini fails.
+        """
+        risk = metrics["overall_risk_level"]
+        credibility = metrics["source_credibility"]
+        prediction = metrics["prediction"]
+        
+        return f"This post appears {risk.lower()} risk with {credibility.lower()} source credibility. " \
+               f"The content is likely {prediction}. Please verify with official sources before sharing."
+            
     
     def _generate_fallback_analysis(self, combined_content: str, username: Optional[str]) -> Dict:
         """

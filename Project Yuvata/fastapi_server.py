@@ -75,6 +75,8 @@ async def evaluate_instagram_post(request: InstagramPostRequest) -> AnalysisResp
         AnalysisResponse: Analysis results including risk level, prediction, source credibility, and explanation
     """
     try:
+        print(f"DEBUG: Received request: caption={request.caption[:50] if request.caption else None}, username={request.username}")
+        
         if not request.caption or request.caption.strip() == "":
             raise HTTPException(status_code=400, detail="Caption cannot be empty")
         
@@ -85,6 +87,8 @@ async def evaluate_instagram_post(request: InstagramPostRequest) -> AnalysisResp
             username=request.username,
             image_paths=None  # Image paths would be passed separately in full implementation
         )
+        
+        print(f"DEBUG: Analysis result: {analysis_result}")
         
         return AnalysisResponse(
             username=request.username,
@@ -98,6 +102,11 @@ async def evaluate_instagram_post(request: InstagramPostRequest) -> AnalysisResp
         
     except HTTPException:
         raise
+    except Exception as e:
+        print(f"ERROR in evaluate_instagram_post: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

@@ -138,20 +138,19 @@ const GamePage = () => {
 
           {/* Right Panel */}
           <div className="lg:w-[30%] space-y-4">
-            <EvaluatorCard
-              title="Text Content Evaluator"
-              description="Used to analyze messages and emails."
-              buttonLabel="Analyze Text"
-              placeholderText="Analysis results will appear here."
-              onToolUsed={handleToolUsed}
-            />
-            <EvaluatorCard
-              title="Instagram Post Evaluator"
-              description="Used to analyze Instagram posts containing images and captions."
-              buttonLabel="Analyze Instagram Post"
-              placeholderText="Image verification results will appear here."
-              onToolUsed={handleToolUsed}
-            />
+            {question.content.type === "instagram" && (
+              <EvaluatorCard
+                title="Instagram Post Evaluator"
+                description="Used to analyze Instagram posts containing images and captions."
+                buttonLabel="Analyze Instagram Post"
+                placeholderText="Image verification results will appear here."
+                onToolUsed={handleToolUsed}
+                postData={{
+                  caption: question.content.caption,
+                  username: question.content.username,
+                }}
+              />
+            )}
           </div>
         </div>
       </div>

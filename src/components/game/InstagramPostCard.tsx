@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Heart, MessageCircle, Send, Bookmark } from "lucide-react";
-import fakePostImage from "@/assets/fake-instagram-post.jpg";
+import image1 from "@/assets/1.png";
 
 interface InstagramPostCardProps {
   username: string;
@@ -33,7 +33,7 @@ const InstagramPostCard = ({ username, caption, imageUrl }: InstagramPostCardPro
         {/* Image */}
         <div className="w-full aspect-square bg-muted">
           <img
-            src={imageUrl || fakePostImage}
+            src={imageUrl || image1}
             alt="Instagram post"
             className="w-full h-full object-cover"
           />
