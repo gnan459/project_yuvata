@@ -142,8 +142,6 @@ Content-Type: application/json
 | **Backend** | Python 3.8+, FastAPI, Uvicorn |
 | **AI** | Google Gemini 2.0 Flash, Keyword Detection |
 | **Extension** | JavaScript, Chrome Extension API v3 |
-| **Testing** | Vitest, Playwright |
-| **Build** | Vite, Bun, PostCSS, ESLint |
 
 ---
 
