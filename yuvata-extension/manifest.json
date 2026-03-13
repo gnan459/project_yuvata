@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Yuvata Digital Literacy Analyzer",
+  "version": "1.0.0",
+  "description": "Real-time detection of misinformation on Instagram posts",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.instagram.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Yuvata Instagram Analyzer"
+  }
+}
