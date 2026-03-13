@@ -122,13 +122,6 @@
 - **Chrome Extension API v3** - Latest manifest version
 - **DOM APIs** - Post extraction and manipulation
 
-### DevOps & Testing
-- **Vitest** - Unit testing framework
-- **Playwright** - E2E testing framework
-- **ESLint** - Code linting
-- **PostCSS** - CSS processing
-- **Bun** - Fast package manager
-
 ---
 
 ## 📦 Installation
