@@ -286,7 +286,11 @@ class PostAnalyzer:
         
         # === SOURCE CREDIBILITY ===
         credible_terms = ["official", "verified", "expert", "news", "journalist", "doctor", "scientist", "institution", "nasa", "government"]
-        suspicious_terms = ["anonymous", "leaked", "insider", "unknown", "classified", "conspiracy", "truth", "giveaway", "free"]
+        suspicious_terms = [
+            "anonymous", "leaked", "insider", "unknown", "classified", "conspiracy", "truth", "giveaway", "free",
+            "secret", "hate", "don't want", "doesn't want", "pharmaceutical", "pharma", "naturally", "naturally cure",
+            "cure naturally", "simple trick", "don't know"
+        ]
         
         credible_score = sum(1 for term in credible_terms if term in content_lower)
         suspicious_score = sum(1 for term in suspicious_terms if term in content_lower)
@@ -298,9 +302,12 @@ class PostAnalyzer:
             if any(term in username_lower for term in ["fake", "troll", "spam", "conspiracy", "truth_channel", "giveaway", "free"]):
                 suspicious_score += 3  # Higher penalty for suspicious usernames
         
-        if credible_score >= 2:
+        # Suspicious takes priority over credible if suspicious_score is high
+        if suspicious_score >= 3:
+            source_credibility = "Low"
+        elif credible_score >= 2:
             source_credibility = "High"
-        elif suspicious_score >= 2:
+        elif suspicious_score >= 1:
             source_credibility = "Low"
         else:
             source_credibility = "Medium"
